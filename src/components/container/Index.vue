@@ -1,5 +1,5 @@
 <template>
-    <div id="main-container" :ref="refName">
+    <div id="main-container" ref="mainContainer">
       <template v-if="ready">
         <slot></slot>
       </template>
@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import { ref, getCurrentInstance, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { debounce } from '../../utils/common'
 
 export default {
@@ -16,38 +16,43 @@ export default {
       options: Object
     },
     setup(props) {
-    const refName = 'mainContainer'
-    const width = ref(0)
-    const height = ref(0)
-    const originalWidth = ref(0)
-    const originalHeight = ref(0)
-    const ready = ref(false)
-    let context, dom, observer
+      const mainContainer = ref(null)
+      const width = ref(0)
+      const height = ref(0)
+      const originalWidth = ref(0)
+      const originalHeight = ref(0)
+      const ready = ref(false)
+      let observer
 
-    const initSize = () => {
-      return new Promise((resolve) => {
-        nextTick(() => {
-            dom = context.$refs[refName]
-            // 获取大屏的真实尺寸
-            if (props.options && props.options.width && props.options.height) {
-              width.value = props.options.width
-              height.value = props.options.height
-            } else {
-              width.value = dom.clientWidth
-              height.value = dom.clientHeight
-            }
-            // 获取画布尺寸
-            if (!originalWidth.value || !originalHeight.value) {
-              originalWidth.value = window.screen.width
-              originalHeight.value = window.screen.height
-            }
-            // console.log(width.value, height.value, originalWidth.value, originalHeight.value)
-            resolve()
-        })
-        })
+      const initSize = () => {
+        return new Promise((resolve) => {
+          nextTick(() => {
+              const dom = mainContainer.value
+              if (!dom) {
+                resolve()
+                return
+              }
+              // 获取大屏的真实尺寸
+              if (props.options && props.options.width && props.options.height) {
+                width.value = props.options.width
+                height.value = props.options.height
+              } else {
+                width.value = dom.clientWidth
+                height.value = dom.clientHeight
+              }
+              // 获取画布尺寸
+              if (!originalWidth.value || !originalHeight.value) {
+                originalWidth.value = window.screen.width
+                originalHeight.value = window.screen.height
+              }
+              resolve()
+          })
+          })
     }
 
     const updateSize = () => {
+        const dom = mainContainer.value
+        if (!dom) return
         if (width.value && height.value) {
         dom.style.width = `${width.value}px`
         dom.style.height = `${height.value}px`
@@ -58,19 +63,20 @@ export default {
     }
 
     const updateScale = () => {
+        const dom = mainContainer.value
+        if (!dom) return
         // 获取真实的视口尺寸
         const currentWidth = document.body.clientWidth
         const currentHeight = document.body.clientHeight
         // 获取大屏最终的宽高
         const realWidth = width.value || originalWidth.value
         const realHeight = height.value || originalHeight.value
-        // console.log(currentWidth, currentHeight)
         const widthScale = currentWidth / realWidth
         const heightScale = currentHeight / realHeight
-        dom && (dom.style.transform = `scale(${widthScale}, ${heightScale})`)
+        dom.style.transform = `scale(${widthScale}, ${heightScale})`
     }
 
-    const onResize = async (e) => {
+    const onResize = async () => {
         await initSize()
         updateScale()
     }
@@ -79,6 +85,8 @@ export default {
 
     const initMutationObserver = () => {
       const MutationObserver = window.MutationObserver
+      const dom = mainContainer.value
+      if (!dom) return
       observer = new MutationObserver(onResize)
       observer.observe(dom, {
         attributes: true,
@@ -97,7 +105,6 @@ export default {
 
     onMounted(async () => {
       ready.value = false
-      context = getCurrentInstance().ctx
       await initSize()
       updateSize()
       updateScale()
@@ -113,7 +120,7 @@ export default {
     })
 
     return {
-        refName,
+        mainContainer,
         ready
       }
     }
