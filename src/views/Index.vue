@@ -21,12 +21,12 @@ const navItems = [
   },
   {
     key: 'process',
-    label: '套色偏差',
+    label: '锁定色标',
     icon: 'process',
   },
   {
     key: 'trend',
-    label: '锁定色标',
+    label: '套色偏差',
     icon: 'trend',
   },
   {
